@@ -78,3 +78,259 @@ public class StudentController {
 	
 
 }
+
+-------------------------
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { UserModelClass } from './user-model-class';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class UserModelServiceService {
+  private baseUrl='http://localhost:8081/v1/api/student';
+  constructor(private http:HttpClient) { }
+
+  getUserList(): Observable<UserModelClass[]>{
+    return this.http.get<UserModelClass[]>(`${this.baseUrl}`);
+  }
+  addUser(ob:Object):Observable<Object>{
+    return this.http.post<Object>(`${this.baseUrl}`,ob)
+  }
+
+  getUser(id:number):Observable<UserModelClass>{
+    return this.http.get<UserModelClass>(`${this.baseUrl}/${id}`)
+  }
+  updateUser(id:number,userModel:UserModelClass):Observable<Object>{
+    return this.http.put<Object>(`${this.baseUrl}/${id}`,userModel)
+  }
+  DeleteUser(id:number):Observable<Object>{
+    return this.http.delete<Object>(`${this.baseUrl}/${id}`);
+  }
+
+}
+
+
+--------------------------------service--above code================
+
+export class UserModelClass {
+    "stdId":number;
+    "stdName":String;
+    "stdEmail":String;
+    "stdPhone":String
+    
+}
+
+
+-------------------------class code-------------------------------------
+<div class="container">
+    <div class="table table-striped">
+        <tbody>
+            <tr>
+                <th>Name</th>
+                <th>Email Id</th>
+                <th>Phone</th>
+                <th>Edit</th>
+                <th>Delete</th>
+                <th>View</th>
+
+            </tr>
+            <tr *ngFor="let item of userModel">
+                <td>{{item.stdName}}</td>
+                <td>{{item.stdEmail}}</td>
+                <td>{{item.stdPhone}}</td>
+                <td><button class="btn btn-primary" (click)="getEdit(item.stdId)">Edit</button></td>
+                <td><button class="btn btn-danger"(click)="getDelete(item.stdId)">Delete</button></td>
+                <td><button class="btn btn-info"(click)="getView(item.stdId)">View</button></td>
+
+            </tr>
+        </tbody>
+    </div>
+
+</div>
+
+
+import { Component } from '@angular/core';
+import { UserModelClass } from '../user-model-class';
+import { UserModelServiceService } from '../user-model-service.service';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-user-model-list',
+  templateUrl: './user-model-list.component.html',
+  styleUrls: ['./user-model-list.component.css']
+})
+export class UserModelListComponent {
+  userModel:UserModelClass[];
+
+  constructor(private service:UserModelServiceService,private route:Router){}
+
+  ngOnInit():void{
+    this.getUserList();
+   
+  }
+  getUserList(){
+    this.service.getUserList().subscribe(data=>{
+      this.userModel=data
+    })
+    
+  }
+  getEdit(id:number){
+    this.route.navigate(['edit',id])
+  }
+  getDelete(id:number){
+    this.service.DeleteUser(id).subscribe(data=>{
+      this.getUserList();
+    })
+  }
+  getView(id:Number){
+    this.route.navigate(['view',id])
+  }
+  
+  
+
+}
+------------------------------------------------ for data show up-----------------
+<div class="col-md-8 offSet-md-3">
+    <form (ngSubmit)="onSubmit()">
+        <div class="form-group">
+            <label >Name</label>
+            <input type="text" name="name" id="" class="form-control" [(ngModel)]="userModel.stdName">
+        </div>
+        <div class="form-group">
+            <label >Email Id</label>
+            <input type="email" name="emailId" id="" class="form-control" [(ngModel)]="userModel.stdEmail" required>
+        </div>
+        <div class="form-group">
+            <label >Phone</label>
+            <input type="text" name="phone" id="" class="form-control" [(ngModel)]="userModel.stdPhone">
+        </div>
+        
+        &nbsp;
+        <button class="btn btn-success" type="submit">submit</button>
+    </form>
+</div>
+
+import { Component } from '@angular/core';
+import { UserModelClass } from '../user-model-class';
+import { UserModelServiceService } from '../user-model-service.service';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-user-add',
+  templateUrl: './user-add.component.html',
+  styleUrls: ['./user-add.component.css']
+})
+export class UserAddComponent {
+  userModel: UserModelClass=new UserModelClass();
+  constructor(private service:UserModelServiceService,private router:Router){}
+  onSubmit(){
+    this.service.addUser(this.userModel).subscribe(data=>{
+      console.log(data)
+      this.router.navigate(['/user']);
+    })
+
+  }
+
+}
+--------------------------user add-----------------------
+
+<div class="col-md-8 offSet-md-3">
+    <form (ngSubmit)="onSubmit()">
+        <div class="form-group">
+            <label >Name</label>
+            <input type="text" name="name" id="" class="form-control" [(ngModel)]="userModel.stdName">
+        </div>
+        <div class="form-group">
+            <label >Email Id</label>
+            <input type="email" name="emailId" id="" class="form-control" [(ngModel)]="userModel.stdEmail">
+        </div>
+        <div class="form-group">
+            <label >Phone</label>
+            <input type="text" name="phone" id="" class="form-control" [(ngModel)]="userModel.stdPhone">
+        </div>
+        
+        &nbsp;
+        <button class="btn btn-success" type="submit">submit</button>
+    </form>
+</div>
+
+import { Component } from '@angular/core';
+import { UserModelClass } from '../user-model-class';
+import { UserModelServiceService } from '../user-model-service.service';
+import { ActivatedRoute, Router } from '@angular/router';
+
+@Component({
+  selector: 'app-user-edit',
+  templateUrl: './user-edit.component.html',
+  styleUrls: ['./user-edit.component.css']
+})
+export class UserEditComponent {
+  userModel:UserModelClass=new UserModelClass();
+  id:number;
+  constructor(private service:UserModelServiceService,private route:ActivatedRoute,private router:Router){}
+  
+  ngOnInit():void{
+    
+    this.id=this.route.snapshot.params['id']
+    this.service.getUser(this.id).subscribe(data=>{
+      this.userModel=data;
+    })
+    
+    
+  }
+  onSubmit(){
+    this.service.updateUser(this.id,this.userModel).subscribe(data=>{
+    this.router.navigate(['user'])
+    }, error =>console.error(error)
+    
+    
+    )
+  }
+}
+-------------------------edit--------------------
+
+<div class="container">
+    <div class="row">
+        <div class="col-3">
+            <dl>
+                <dt>Name </dt>{{userModel.stdName}}
+                
+                <dt>Email ID </dt>{{userModel.stdEmail}}
+                <dt>Phone </dt>{{userModel.stdPhone}}
+            </dl>
+        </div>
+    </div>
+    
+</div>
+
+
+import { Component } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { UserModelServiceService } from '../user-model-service.service';
+import { UserModelClass } from '../user-model-class';
+
+@Component({
+  selector: 'app-view-user',
+  templateUrl: './view-user.component.html',
+  styleUrls: ['./view-user.component.css']
+})
+export class ViewUserComponent {
+  id:number;
+  userModel:UserModelClass
+  constructor(private route:ActivatedRoute,private service:UserModelServiceService){}
+
+  ngOnInit():void{
+    this.id=this.route.snapshot.params['id'];
+
+    this.userModel=new UserModelClass();
+
+    this.service.getUser(this.id).subscribe(data=>{
+      this.userModel=data;
+    })
+
+  }
+}
+-----------------------single user--------------------------------
+
